@@ -54,11 +54,11 @@
   "author": "tinyweb-cells contributors",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nicekid1/tinyweb-cells.git"
+    "url": "https://github.com/tinyweb-01/tinyweb-office-cells.git"
   },
-  "homepage": "https://github.com/nicekid1/tinyweb-cells#readme",
+  "homepage": "https://github.com/tinyweb-01/tinyweb-office-cells#readme",
   "bugs": {
-    "url": "https://github.com/nicekid1/tinyweb-cells/issues"
+    "url": "https://github.com/tinyweb-01/tinyweb-office-cells/issues"
   },
   "engines": {
     "node": ">=16"
