@@ -1,10 +1,6 @@
-name: Publish to npm
+name: Manual Publish
 
 on:
-  release:
-    types: [published]
-
-  # Allow manual trigger
   workflow_dispatch:
     inputs:
       dry_run:
@@ -19,6 +15,7 @@ permissions:
 
 jobs:
   publish:
+    name: Publish to npm (Manual)
     runs-on: ubuntu-latest
 
     steps:
