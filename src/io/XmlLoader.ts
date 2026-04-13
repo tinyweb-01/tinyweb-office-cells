@@ -1,5 +1,5 @@
 /**
- * tinyweb-cells – XML Loader Module (Phase 3)
+ * tinyweb-office-cells – XML Loader Module (Phase 3)
  *
  * Reads OOXML (.xlsx) ZIP archives and populates Workbook objects.
  * Port of the Python `xml_loader.py`.

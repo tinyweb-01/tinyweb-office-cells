@@ -1,8 +1,8 @@
-# tinyweb-cells
+# tinyweb-office-cells
 
 > Open-source Node.js/TypeScript library for reading, writing, and manipulating Excel XLSX files with full formatting, formula evaluation, and Aspose Cells-compatible API.
 
-[![npm version](https://img.shields.io/npm/v/tinyweb-cells.svg)](https://www.npmjs.com/package/tinyweb-cells)
+[![npm version](https://img.shields.io/npm/v/tinyweb-office-cells.svg)](https://www.npmjs.com/package/tinyweb-office-cells)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Features
@@ -29,7 +29,7 @@
 ## Installation
 
 ```bash
-npm install tinyweb-cells
+npm install tinyweb-office-cells
 ```
 
 ## Quick Start
@@ -37,7 +37,7 @@ npm install tinyweb-cells
 ### Create a Workbook and Save
 
 ```typescript
-import { Workbook, SaveFormat } from 'tinyweb-cells';
+import { Workbook, SaveFormat } from 'tinyweb-office-cells';
 
 // Create a new workbook
 const workbook = new Workbook();
@@ -61,7 +61,7 @@ await workbook.save('output.xlsx');
 ### Read an Existing File
 
 ```typescript
-import { Workbook } from 'tinyweb-cells';
+import { Workbook } from 'tinyweb-office-cells';
 
 const workbook = new Workbook();
 await workbook.loadFile('input.xlsx');
@@ -74,7 +74,7 @@ console.log(sheet.name);                  // Sheet name
 ### Apply Formatting
 
 ```typescript
-import { Workbook } from 'tinyweb-cells';
+import { Workbook } from 'tinyweb-office-cells';
 
 const workbook = new Workbook();
 const sheet = workbook.worksheets.get(0);
@@ -261,7 +261,7 @@ cell.setStyle(style);
 Evaluate formulas in cells.
 
 ```typescript
-import { FormulaEvaluator } from 'tinyweb-cells';
+import { FormulaEvaluator } from 'tinyweb-office-cells';
 
 // Set up formulas
 sheet.cells.get('A1').putValue(10);
@@ -280,7 +280,7 @@ console.log(sheet.cells.get('A3').value); // 30
 Add data validation rules to cells.
 
 ```typescript
-import { DataValidation, DataValidationType, DataValidationOperator } from 'tinyweb-cells';
+import { DataValidation, DataValidationType, DataValidationOperator } from 'tinyweb-office-cells';
 
 const validations = sheet.dataValidations;
 
@@ -431,7 +431,7 @@ The built-in formula evaluator supports **43 Excel functions** across 7 categori
 ### Create and Save a Workbook
 
 ```typescript
-import { Workbook } from 'tinyweb-cells';
+import { Workbook } from 'tinyweb-office-cells';
 
 const wb = new Workbook();
 const ws = wb.worksheets.get(0);
@@ -469,7 +469,7 @@ await wb.save('sales-report.xlsx');
 ### Read and Modify an Existing File
 
 ```typescript
-import { Workbook } from 'tinyweb-cells';
+import { Workbook } from 'tinyweb-office-cells';
 
 const wb = new Workbook();
 await wb.loadFile('existing.xlsx');
@@ -494,7 +494,7 @@ await wb.save('modified.xlsx');
 ### Data Validation with Dropdown
 
 ```typescript
-import { Workbook, DataValidationType } from 'tinyweb-cells';
+import { Workbook, DataValidationType } from 'tinyweb-office-cells';
 
 const wb = new Workbook();
 const ws = wb.worksheets.get(0);
@@ -516,7 +516,7 @@ await wb.save('dropdown.xlsx');
 ### Conditional Formatting
 
 ```typescript
-import { Workbook } from 'tinyweb-cells';
+import { Workbook } from 'tinyweb-office-cells';
 
 const wb = new Workbook();
 const ws = wb.worksheets.get(0);
@@ -598,7 +598,7 @@ import {
   FreezePane,
   WorkbookProtection,
   DocumentProperties,
-} from 'tinyweb-cells';
+} from 'tinyweb-office-cells';
 ```
 
 ## Dependencies

@@ -1,5 +1,5 @@
 /**
- * tinyweb-cells – Public API surface
+ * tinyweb-office-cells – Public API surface
  *
  * Re-exports every class, enum, interface, and type that consumers need.
  */
