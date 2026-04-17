@@ -14,6 +14,8 @@ export interface HtmlRenderOptions {
   fullPage?: boolean;
   /** Default font family (default: 'Calibri, Arial, sans-serif') */
   defaultFont?: string;
+  /** Render only cells within this A1 range, e.g. "A1:D10" */
+  range?: string;
 }
 
 export interface PngRenderOptions extends HtmlRenderOptions {
@@ -143,23 +145,38 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
   const cellMap = cells._cells;
   const { origins, hidden } = parseMergedCells(ws._mergedCells || []);
 
-  // Determine grid bounds
-  let maxRow = 0, maxCol = 0;
-  for (const ref of cellMap.keys()) {
-    const p = parseA1(ref);
-    if (p) {
-      if (p.row > maxRow) maxRow = p.row;
-      if (p.col > maxCol) maxCol = p.col;
+  // Parse optional range bounds
+  let minRow = 1, minCol = 1, maxRow = 0, maxCol = 0;
+  if (options.range) {
+    const rangeParts = options.range.split(':');
+    if (rangeParts.length === 2) {
+      const tl = parseA1(rangeParts[0]);
+      const br = parseA1(rangeParts[1]);
+      if (tl && br) {
+        minRow = tl.row; minCol = tl.col;
+        maxRow = br.row; maxCol = br.col;
+      }
     }
   }
-  // Also check merged cell spans
-  for (const range of (ws._mergedCells || [])) {
-    const parts = range.split(':');
-    if (parts.length === 2) {
-      const br = parseA1(parts[1]);
-      if (br) {
-        if (br.row > maxRow) maxRow = br.row;
-        if (br.col > maxCol) maxCol = br.col;
+
+  // Auto-detect bounds if no range or invalid range
+  if (maxRow === 0) {
+    for (const ref of cellMap.keys()) {
+      const p = parseA1(ref);
+      if (p) {
+        if (p.row > maxRow) maxRow = p.row;
+        if (p.col > maxCol) maxCol = p.col;
+      }
+    }
+    // Also check merged cell spans
+    for (const range of (ws._mergedCells || [])) {
+      const parts = range.split(':');
+      if (parts.length === 2) {
+        const br = parseA1(parts[1]);
+        if (br) {
+          if (br.row > maxRow) maxRow = br.row;
+          if (br.col > maxCol) maxCol = br.col;
+        }
       }
     }
   }
@@ -169,7 +186,7 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
   const colWidths = ws._columnWidths || {};
   if (Object.keys(colWidths).length > 0) {
     colgroup = '<colgroup>';
-    for (let c = 1; c <= maxCol; c++) {
+    for (let c = minCol; c <= maxCol; c++) {
       const w = colWidths[c];
       if (w) {
         // Excel width units ≈ 7px per unit
@@ -184,12 +201,12 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
   // Build rows
   const rowHeights = ws._rowHeights || {};
   let tbody = '';
-  for (let r = 1; r <= maxRow; r++) {
+  for (let r = minRow; r <= maxRow; r++) {
     const rh = rowHeights[r];
     const rowStyle = rh ? ` style="height:${Math.round(rh * 1.33)}px"` : '';
     tbody += `<tr${rowStyle}>`;
 
-    for (let c = 1; c <= maxCol; c++) {
+    for (let c = minCol; c <= maxCol; c++) {
       const key = `${r},${c}`;
       if (hidden.has(key)) continue;
 

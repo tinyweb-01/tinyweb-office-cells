@@ -209,3 +209,62 @@ describe('worksheetToPng', () => {
     expect(png[0]).toBe(0x89);
   }, 30000);
 });
+
+// ─── Range-based rendering tests ────────────────────────────────────────
+
+describe('worksheetToHtml with range option', () => {
+  function build3x3Sheet(): Worksheet {
+    const ws = new Worksheet('Range');
+    // 3x3 grid: A1..C3
+    for (let r = 1; r <= 3; r++) {
+      for (let c = 1; c <= 3; c++) {
+        const ref = String.fromCharCode(64 + c) + r; // A1, B1, ...
+        ws.cells.get(ref).value = `${ref}`;
+      }
+    }
+    return ws;
+  }
+
+  it('renders only cells within the specified range', () => {
+    const ws = build3x3Sheet();
+    const html = worksheetToHtml(ws, { range: 'B2:C3' });
+    expect(html).toContain('B2');
+    expect(html).toContain('C3');
+    expect(html).not.toContain('A1');
+    expect(html).not.toContain('A2');
+    expect(html).not.toContain('B1');
+  });
+
+  it('renders correct number of rows and columns for range', () => {
+    const ws = build3x3Sheet();
+    const html = worksheetToHtml(ws, { range: 'A1:B2' });
+    // Should have 2 rows, 2 cells each
+    const trCount = (html.match(/<tr/g) || []).length;
+    const tdCount = (html.match(/<td/g) || []).length;
+    expect(trCount).toBe(2);
+    expect(tdCount).toBe(4);
+  });
+
+  it('single-cell range renders one cell', () => {
+    const ws = build3x3Sheet();
+    const html = worksheetToHtml(ws, { range: 'B2:B2' });
+    const tdCount = (html.match(/<td/g) || []).length;
+    expect(tdCount).toBe(1);
+    expect(html).toContain('B2');
+  });
+
+  it('falls back to full sheet when range is invalid', () => {
+    const ws = build3x3Sheet();
+    const htmlFull = worksheetToHtml(ws);
+    const htmlBad = worksheetToHtml(ws, { range: 'INVALID' });
+    expect(htmlBad).toBe(htmlFull);
+  });
+
+  it('range works with fullPage option', () => {
+    const ws = build3x3Sheet();
+    const html = worksheetToHtml(ws, { range: 'A1:A1', fullPage: true });
+    expect(html).toContain('<!DOCTYPE html>');
+    expect(html).toContain('A1');
+    expect(html).not.toContain('B1');
+  });
+});

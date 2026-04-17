@@ -23,6 +23,7 @@
 - ✅ **Page setup** — orientation, paper size, margins, print area, headers/footers
 - ✅ **Freeze panes** — freeze rows and columns
 - ✅ **Dual API naming** — both `camelCase` and `snake_case` method names
+- ✅ **Sheet rendering** — export worksheets to HTML or PNG screenshots (via Puppeteer)
 - ✅ **TypeScript-first** — full type declarations included
 - ✅ **Zero native dependencies** — pure JavaScript, works everywhere Node.js runs
 
@@ -540,6 +541,47 @@ cf.dxf = {
 await wb.save('conditional.xlsx');
 ```
 
+### Render Worksheet to HTML / PNG
+
+Convert any worksheet to an HTML table with full styling, or capture a PNG screenshot.
+
+```typescript
+import { Workbook, worksheetToHtml, worksheetToPng } from 'tinyweb-office-cells';
+
+const wb = new Workbook();
+await wb.loadFile('report.xlsx');
+const ws = wb.worksheets.get(0);
+
+// Render to HTML string (with inline styles for fonts, fills, borders, merges)
+const html = worksheetToHtml(ws);
+// Or as a full HTML page:
+const fullHtml = worksheetToHtml(ws, { fullPage: true });
+
+// Render only a specific range:
+const rangeHtml = worksheetToHtml(ws, { range: 'A1:D10' });
+const rangePng = await worksheetToPng(ws, { range: 'B2:F20' });
+
+// Render to PNG (requires puppeteer as peer dependency)
+// npm install puppeteer
+const pngBuffer = await worksheetToPng(ws);
+fs.writeFileSync('sheet.png', pngBuffer);
+
+// Also available as convenience methods on Worksheet:
+const html2 = ws.toHtml();
+const png2 = await ws.toPng();
+```
+
+**Render options:**
+
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `fullPage` | `boolean` | `false` | Wrap table in a full HTML document |
+| `defaultFont` | `string` | `'Calibri,Arial,sans-serif'` | Default font family |
+| `range` | `string` | — | Render only cells within this A1 range, e.g. `'A1:D10'` |
+| `viewportWidth` | `number` | `1200` | Viewport width for PNG rendering |
+
+> **Note:** PNG rendering requires [puppeteer](https://www.npmjs.com/package/puppeteer) as an optional peer dependency. Install it separately: `npm install puppeteer`
+
 ## API Compatibility
 
 This library provides **dual naming conventions** for maximum compatibility:
@@ -598,6 +640,9 @@ import {
   FreezePane,
   WorkbookProtection,
   DocumentProperties,
+  // Rendering
+  worksheetToHtml,
+  worksheetToPng,
 } from 'tinyweb-office-cells';
 ```
 
@@ -607,6 +652,7 @@ import {
 |---|---|
 | [jszip](https://www.npmjs.com/package/jszip) | XLSX ZIP container read/write |
 | [fast-xml-parser](https://www.npmjs.com/package/fast-xml-parser) | XML parsing and generation |
+| [puppeteer](https://www.npmjs.com/package/puppeteer) *(optional)* | PNG screenshot rendering (only needed for `worksheetToPng`) |
 
 No native/binary dependencies — works on any platform where Node.js runs.
 
