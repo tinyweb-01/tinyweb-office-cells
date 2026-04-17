@@ -13,6 +13,15 @@ import {
   DataValidationImeMode,
 } from '../features/DataValidation';
 
+function unescapeXml(s: string): string {
+  return s
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+}
+
 // Maps from XML string → enum
 const TYPE_MAP: Record<string, DataValidationType> = {
   none: DataValidationType.NONE,
@@ -145,12 +154,12 @@ export class DataValidationXmlLoader {
     // Formulas
     const formula1 = dvElem?.formula1;
     if (formula1 != null) {
-      dv.formula1 = typeof formula1 === 'object' ? formula1['#text'] ?? String(formula1) : String(formula1);
+      dv.formula1 = unescapeXml(typeof formula1 === 'object' ? formula1['#text'] ?? String(formula1) : String(formula1));
     }
 
     const formula2 = dvElem?.formula2;
     if (formula2 != null) {
-      dv.formula2 = typeof formula2 === 'object' ? formula2['#text'] ?? String(formula2) : String(formula2);
+      dv.formula2 = unescapeXml(typeof formula2 === 'object' ? formula2['#text'] ?? String(formula2) : String(formula2));
     }
 
     collection.addValidation(dv);
