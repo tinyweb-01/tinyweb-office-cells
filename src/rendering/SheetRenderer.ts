@@ -304,7 +304,12 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
         // Alignment
         const align = style.alignment;
         if (align) {
-          if (align.horizontal && align.horizontal !== 'general') {
+          if (align.horizontal === 'general' || !align.horizontal) {
+            // Excel 'general': right-align numbers, left-align text
+            if (typeof cell.value === 'number') {
+              styles.push('text-align:right');
+            }
+          } else {
             styles.push(`text-align:${align.horizontal}`);
           }
           if (align.vertical && align.vertical !== 'bottom') {
