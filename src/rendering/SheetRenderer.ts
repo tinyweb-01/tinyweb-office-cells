@@ -138,6 +138,51 @@ function borderToCss(lineStyle: string, color?: string): string | null {
   return `${w} ${s} ${c}`;
 }
 
+// ─── Number format helper ───────────────────────────────────────────────
+
+function formatCellValue(value: any, numberFormat: string): string {
+  if (value == null) return '';
+  if (typeof value !== 'number' || !numberFormat || numberFormat === 'General' || numberFormat === '@') {
+    return String(value);
+  }
+
+  try {
+    // Handle percentage formats
+    if (numberFormat.includes('%')) {
+      const pctValue = value * 100;
+      const decimals = (numberFormat.match(/0\.(0+)%/) || [])[1]?.length ?? 0;
+      return pctValue.toFixed(decimals) + '%';
+    }
+
+    // Parse the format to determine decimal places and thousand separator
+    // Typical formats: #,##0  #,##0.00  0.00  0  #,##0.00_)  etc.
+    const hasThousandSep = numberFormat.includes(',');
+    const decimalMatch = numberFormat.match(/\.(0+)/);
+    const decimals = decimalMatch ? decimalMatch[1].length : 0;
+
+    // Check if format uses special separators (e.g. European: #.##0,00)
+    // Excel stores formats with , for thousands and . for decimal in the format string
+    const absValue = Math.abs(value);
+    let formatted: string;
+
+    if (hasThousandSep) {
+      // Use locale-aware formatting
+      formatted = absValue.toLocaleString('en-US', {
+        minimumFractionDigits: decimals,
+        maximumFractionDigits: decimals,
+        useGrouping: true,
+      });
+    } else {
+      formatted = absValue.toFixed(decimals);
+    }
+
+    if (value < 0) formatted = '-' + formatted;
+    return formatted;
+  } catch {
+    return String(value);
+  }
+}
+
 // ─── Main render function ───────────────────────────────────────────────
 
 export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}): string {
@@ -183,17 +228,16 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
 
   // Build colgroup for column widths
   let colgroup = '';
+  let totalTableWidth = 0;
   const colWidths = ws._columnWidths || {};
+  const pxPerUnit = 7;
   if (Object.keys(colWidths).length > 0) {
     colgroup = '<colgroup>';
     for (let c = minCol; c <= maxCol; c++) {
-      const w = colWidths[c];
-      if (w) {
-        // Excel width units ≈ 7px per unit
-        colgroup += `<col style="width:${Math.round(w * 7)}px">`;
-      } else {
-        colgroup += '<col>';
-      }
+      const w = colWidths[c] || 8.43; // default Excel column width
+      const px = Math.round(w * pxPerUnit);
+      totalTableWidth += px;
+      colgroup += `<col style="width:${px}px">`;
     }
     colgroup += '</colgroup>';
   }
@@ -256,19 +300,37 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
           if (bl) styles.push(`border-left:${bl}`);
           if (br2) styles.push(`border-right:${br2}`);
         }
+
+        // Alignment
+        const align = style.alignment;
+        if (align) {
+          if (align.horizontal && align.horizontal !== 'general') {
+            styles.push(`text-align:${align.horizontal}`);
+          }
+          if (align.vertical && align.vertical !== 'bottom') {
+            const vMap: Record<string, string> = { top: 'top', center: 'middle', justify: 'middle', distributed: 'middle' };
+            styles.push(`vertical-align:${vMap[align.vertical] || 'middle'}`);
+          }
+          if (align.wrapText) {
+            styles.push('white-space:normal;word-wrap:break-word');
+          }
+        }
       }
 
       const styleAttr = styles.length ? ` style="${styles.join(';')}"` : '';
-      const value = cell?.value != null ? escapeHtml(String(cell.value)) : '';
+      const value = cell?.value != null ? escapeHtml(formatCellValue(cell.value, cell.style.numberFormat)) : '';
       tbody += `<td${spanAttr}${styleAttr}>${value}</td>`;
     }
     tbody += '</tr>';
   }
 
-  const tableHtml = `<table style="border-collapse:collapse;font-family:${options.defaultFont || 'Calibri,Arial,sans-serif'}">${colgroup}${tbody}</table>`;
+  const tableLayoutStyle = totalTableWidth > 0
+    ? `table-layout:fixed;width:${totalTableWidth}px;`
+    : '';
+  const tableHtml = `<table style="border-collapse:collapse;${tableLayoutStyle}font-family:${options.defaultFont || 'Calibri,Arial,sans-serif'}">${colgroup}${tbody}</table>`;
 
   if (options.fullPage) {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:8px;background:#fff}td{padding:2px 6px;vertical-align:middle;background-color:#fff}</style></head><body>${tableHtml}</body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:8px;background:#fff}td{padding:2px 6px;vertical-align:middle;background-color:#fff;white-space:nowrap}</style></head><body>${tableHtml}</body></html>`;
   }
 
   return tableHtml;

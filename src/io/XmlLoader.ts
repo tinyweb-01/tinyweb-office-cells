@@ -154,6 +154,32 @@ const BUILTIN_FORMATS: Record<number, string> = {
   49: '@',
 };
 
+// ── Theme color tint helper ─────────────────────────────────────────────────
+
+function applyTint(argb: string, tint: number): string {
+  // Parse ARGB hex (e.g. "FFFFFFFF") to RGB components
+  const hex = argb.length >= 8 ? argb.slice(2) : argb;
+  let r = parseInt(hex.slice(0, 2), 16);
+  let g = parseInt(hex.slice(2, 4), 16);
+  let b = parseInt(hex.slice(4, 6), 16);
+
+  if (tint < 0) {
+    // Darken
+    r = Math.round(r * (1 + tint));
+    g = Math.round(g * (1 + tint));
+    b = Math.round(b * (1 + tint));
+  } else {
+    // Lighten
+    r = Math.round(r + (255 - r) * tint);
+    g = Math.round(g + (255 - g) * tint);
+    b = Math.round(b + (255 - b) * tint);
+  }
+
+  const clamp = (v: number) => Math.max(0, Math.min(255, v));
+  const toHex = (v: number) => clamp(v).toString(16).padStart(2, '0').toUpperCase();
+  return 'FF' + toHex(r) + toHex(g) + toHex(b);
+}
+
 // ── XML Parser configuration ───────────────────────────────────────────────
 
 function createParser(): XMLParser {
@@ -408,8 +434,45 @@ export class XmlLoader {
     const file = zip.file('xl/theme/theme1.xml');
     if (file) {
       this._wb._themeXml = await file.async('nodebuffer');
+      // Parse theme colors
+      try {
+        const themeStr = this._wb._themeXml.toString('utf-8');
+        const themeDoc = this._parser.parse(themeStr);
+        const themeElements =
+          themeDoc?.['theme']?.['themeElements'] ?? {};
+        const clrScheme = themeElements['clrScheme'] ?? {};
+
+        // Extract theme color palette — Excel swaps 0↔1 and 2↔3
+        const colorOrder = [
+          'lt1', 'dk1', 'lt2', 'dk2',
+          'accent1', 'accent2', 'accent3', 'accent4',
+          'accent5', 'accent6', 'hlink', 'folHlink',
+        ];
+        const themeColors: string[] = [];
+        for (const key of colorOrder) {
+          const elem = clrScheme[key];
+          if (elem) {
+            // sysClr or srgbClr
+            const srgb = elem['srgbClr'];
+            const sys = elem['sysClr'];
+            if (srgb) {
+              themeColors.push('FF' + attr(srgb, 'val', '000000'));
+            } else if (sys) {
+              themeColors.push('FF' + attr(sys, 'lastClr', '000000'));
+            } else {
+              themeColors.push('FF000000');
+            }
+          } else {
+            themeColors.push('FF000000');
+          }
+        }
+        (this._wb as any)._themeColors = themeColors;
+      } catch {
+        (this._wb as any)._themeColors = null;
+      }
     } else {
       this._wb._themeXml = null;
+      (this._wb as any)._themeColors = null;
     }
   }
 
@@ -723,10 +786,26 @@ export class XmlLoader {
         }
       }
 
+      // Resolve color: rgb directly, theme via _themeColors lookup
+      let resolvedColor = 'FF000000';
+      if (colorType === 'rgb' && colorValue) {
+        resolvedColor = colorValue;
+      } else if (colorType === 'theme' && colorValue) {
+        const themeColors: string[] | null = (this._wb as any)._themeColors;
+        const themeIdx = parseInt(colorValue, 10);
+        if (themeColors && themeIdx >= 0 && themeIdx < themeColors.length) {
+          resolvedColor = themeColors[themeIdx];
+          // Apply tint if present
+          if (colorTint) {
+            resolvedColor = applyTint(resolvedColor, parseFloat(colorTint));
+          }
+        }
+      }
+
       const fontData: LoaderFontData = {
         name: nameElem ? attr(nameElem, 'val', 'Calibri') : 'Calibri',
         size: szElem ? parseFloat(attr(szElem, 'val', '11')) : 11,
-        color: colorType === 'rgb' && colorValue ? colorValue : 'FF000000',
+        color: resolvedColor,
         color_type: colorType,
         color_value: colorValue,
         color_tint: colorTint,
@@ -750,9 +829,7 @@ export class XmlLoader {
         defaultFont.italic = fontData.italic;
         defaultFont.underline = fontData.underline;
         defaultFont.strikethrough = fontData.strikethrough;
-        if (fontData.color_type === 'rgb' && fontData.color_value) {
-          defaultFont.color = fontData.color_value;
-        }
+        defaultFont.color = fontData.color;
       }
     }
   }
@@ -773,8 +850,8 @@ export class XmlLoader {
       const [fgType, fgValue, fgTint] = this._extractColorAttrs(fgColorElem);
       const [bgType, bgValue, bgTint] = this._extractColorAttrs(bgColorElem);
 
-      const fgRgb = fgType === 'rgb' && fgValue ? fgValue : 'FFFFFFFF';
-      const bgRgb = bgType === 'rgb' && bgValue ? bgValue : 'FFFFFFFF';
+      const fgRgb = this._resolveColor(fgType, fgValue, fgTint);
+      const bgRgb = this._resolveColor(bgType, bgValue, bgTint);
 
       const fillData: LoaderFillData = {
         pattern_type: patternElem ? attr(patternElem, 'patternType', 'none') : 'none',
@@ -790,6 +867,20 @@ export class XmlLoader {
 
       this._wb._loaderFillStyles.set(i, fillData);
     }
+  }
+
+  private _resolveColor(colorType: string, colorValue: string | null, colorTint: number | null): string {
+    if (colorType === 'rgb' && colorValue) return colorValue;
+    if (colorType === 'theme' && colorValue) {
+      const themeColors: string[] | null = (this._wb as any)._themeColors;
+      const themeIdx = parseInt(colorValue, 10);
+      if (themeColors && themeIdx >= 0 && themeIdx < themeColors.length) {
+        let resolved = themeColors[themeIdx];
+        if (colorTint) resolved = applyTint(resolved, colorTint);
+        return resolved;
+      }
+    }
+    return 'FFFFFFFF';
   }
 
   private _extractColorAttrs(
