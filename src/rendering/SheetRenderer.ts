@@ -96,6 +96,18 @@ function isDefaultFill(color: string): boolean {
   return !color || color === 'FFFFFFFF' || color === '00000000';
 }
 
+function shouldRenderFill(patternType: string, foregroundColor: string): boolean {
+  // Skip no fill
+  if (!patternType || patternType === 'none') return false;
+  // Skip gray125 (Excel default fill index 1 — not a visible fill)
+  if (patternType === 'gray125') return false;
+  // Skip default/unset foreground colors
+  if (isDefaultFill(foregroundColor)) return false;
+  // Skip black foreground — usually an unset/default value, not intentional black fill
+  if (foregroundColor === 'FF000000') return false;
+  return true;
+}
+
 function isDefaultFontColor(color: string): boolean {
   return !color || color === 'FF000000';
 }
@@ -211,7 +223,7 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
         }
 
         // Fill
-        if (fill.patternType && fill.patternType !== 'none' && !isDefaultFill(fill.foregroundColor)) {
+        if (shouldRenderFill(fill.patternType, fill.foregroundColor)) {
           const hex = '#' + fill.foregroundColor.slice(-6);
           styles.push(`background-color:${hex}`);
         }
@@ -239,7 +251,7 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
   const tableHtml = `<table style="border-collapse:collapse;font-family:${options.defaultFont || 'Calibri,Arial,sans-serif'}">${colgroup}${tbody}</table>`;
 
   if (options.fullPage) {
-    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:8px}td{padding:2px 6px;vertical-align:middle}</style></head><body>${tableHtml}</body></html>`;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><style>body{margin:0;padding:8px;background:#fff}td{padding:2px 6px;vertical-align:middle;background-color:#fff}</style></head><body>${tableHtml}</body></html>`;
   }
 
   return tableHtml;
