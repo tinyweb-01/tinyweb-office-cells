@@ -1,3 +1,4 @@
 .secret
 .idea
 dist
+node_modules
