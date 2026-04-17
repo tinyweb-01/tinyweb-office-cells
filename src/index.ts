@@ -137,3 +137,15 @@ export {
 } from './io/CellValueHandler';
 export { XmlSaver } from './io/XmlSaver';
 export { XmlLoader } from './io/XmlLoader';
+
+// ---------------------------------------------------------------------------
+// Rendering
+// ---------------------------------------------------------------------------
+export {
+  worksheetToHtml,
+  worksheetToPng,
+} from './rendering';
+export type {
+  HtmlRenderOptions,
+  PngRenderOptions,
+} from './rendering';

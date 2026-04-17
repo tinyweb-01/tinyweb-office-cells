@@ -173,6 +173,7 @@ function createParser(): XMLParser {
     removeNSPrefix: true,
     parseTagValue: false,
     trimValues: false,
+    processEntities: false,
   });
 }
 
@@ -1698,6 +1699,7 @@ export class XmlLoader {
         removeNSPrefix: true,
         parseTagValue: false,
         trimValues: false,
+    processEntities: false,
       });
       const root = coreParser.parse(buf.toString('utf-8'));
       const coreProps = root.coreProperties || root['cp:coreProperties'] || root;
@@ -1779,6 +1781,7 @@ export class XmlLoader {
         removeNSPrefix: true,
         parseTagValue: false,
         trimValues: false,
+    processEntities: false,
       });
       const root = appParser.parse(buf.toString('utf-8'));
       const appProps = root.Properties || root;

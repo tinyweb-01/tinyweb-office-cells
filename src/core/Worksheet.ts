@@ -526,4 +526,22 @@ export class Worksheet {
 
   /** snake_case alias */
   calculate_formula(): void { this.calculateFormula(); }
+
+  // ── Rendering ───────────────────────────────────────────────────────────
+
+  /** Convert this worksheet to an HTML table string. */
+  toHtml(options?: any): string {
+    const { worksheetToHtml } = require('../rendering/SheetRenderer');
+    return worksheetToHtml(this, options);
+  }
+
+  /** Render this worksheet to a PNG buffer (requires puppeteer). */
+  async toPng(options?: any): Promise<Buffer> {
+    const { worksheetToPng } = require('../rendering/Screenshot');
+    return worksheetToPng(this, options);
+  }
+
+  /** snake_case aliases */
+  to_html(options?: any): string { return this.toHtml(options); }
+  async to_png(options?: any): Promise<Buffer> { return this.toPng(options); }
 }
