@@ -1,6 +1,6 @@
 {
   "name": "tinyweb-office-cells",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "Open-source Node.js/TypeScript library for reading, writing, and manipulating Excel XLSX files with full formatting and formula evaluation",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
