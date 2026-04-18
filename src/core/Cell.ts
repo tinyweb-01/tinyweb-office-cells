@@ -1,8 +1,7 @@
 /**
- * Aspose.Cells for Node.js - Cell Module
+ * tinyweb-office-cells - Cell Module
  *
  * Represents a single cell in a worksheet.
- * Compatible with Aspose.Cells for .NET API structure.
  */
 
 import { Style } from '../styling/Style';

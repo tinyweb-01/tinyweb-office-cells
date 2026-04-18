@@ -12,7 +12,6 @@ import { XMLParser } from 'fast-xml-parser';
 import { Workbook } from '../core/Workbook';
 import { Worksheet } from '../core/Worksheet';
 import { Cell } from '../core/Cell';
-import { Cells } from '../core/Cells';
 import { CellValueHandler } from './CellValueHandler';
 import { AutoFilterXmlLoader } from './XmlAutoFilterLoader';
 import { ConditionalFormatXmlLoader } from './XmlConditionalFormatLoader';
@@ -340,6 +339,20 @@ export class XmlLoader {
 
     // Load worksheet data
     await this._loadWorksheetsData(zip);
+
+    // Load drawings (pictures + shapes) per worksheet
+    try {
+      const { loadWorksheetDrawings } = await import('./DrawingsLoader');
+      for (let i = 0; i < this._wb._worksheets.length; i++) {
+        try {
+          await loadWorksheetDrawings(zip, this._parser, this._wb._worksheets[i], i + 1);
+        } catch {
+          // ignore per-sheet drawing load errors
+        }
+      }
+    } catch {
+      // DrawingsLoader unavailable
+    }
   }
 
   /**

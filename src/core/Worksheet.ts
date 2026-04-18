@@ -1,8 +1,7 @@
 /**
- * Aspose.Cells for Node.js - Worksheet Module
+ * tinyweb-office-cells - Worksheet Module
  *
  * Represents a single worksheet in an Excel workbook.
- * Compatible with Aspose.Cells for .NET API structure.
  */
 
 import { Cells } from './Cells';

@@ -1,5 +1,5 @@
 /**
- * Aspose.Cells for Node.js - Defined Name Module
+ * tinyweb-office-cells - Defined Name Module
  *
  * Represents defined names (named ranges) in the workbook.
  * Ported from Python `workbook_properties.py` DefinedName/DefinedNameCollection.

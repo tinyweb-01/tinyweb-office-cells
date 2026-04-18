@@ -1,5 +1,5 @@
 /**
- * Aspose.Cells for Node.js – Workbook Module
+ * tinyweb-office-cells – Workbook Module
  *
  * Provides Workbook class representing an Excel workbook, along with
  * SaveFormat enum and WorkbookProtection helper.
@@ -18,8 +18,6 @@ import { DefinedNameCollection } from '../features/DefinedName';
 
 /**
  * Specifies the format for saving a workbook.
- *
- * Compatible with Aspose.Cells for .NET SaveFormat enumeration.
  */
 export enum SaveFormat {
   AUTO = 'auto',

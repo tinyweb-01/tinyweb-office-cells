@@ -17,15 +17,12 @@
 import JSZip from 'jszip';
 import { Workbook } from '../core/Workbook';
 import { Worksheet } from '../core/Worksheet';
-import { Cell, CellValue } from '../core/Cell';
+import { Cell } from '../core/Cell';
 import { Cells } from '../core/Cells';
 import { SharedStringTable } from './SharedStrings';
 import {
   CellValueHandler,
   CELL_TYPE_STRING,
-  CELL_TYPE_BOOLEAN,
-  CELL_TYPE_NUMBER,
-  CELL_TYPE_ERROR,
 } from './CellValueHandler';
 import {
   Font,
@@ -34,13 +31,12 @@ import {
   Alignment,
   Protection,
   NumberFormat,
-  Style,
 } from '../styling/Style';
 
 // Phase 4 feature savers
 import { DataValidationXmlSaver } from './XmlDataValidationSaver';
 import { ConditionalFormatXmlSaver } from './XmlConditionalFormatSaver';
-import { HyperlinkXmlSaver, HyperlinkRelationshipWriter } from './XmlHyperlinkHandler';
+import { HyperlinkXmlSaver } from './XmlHyperlinkHandler';
 import { AutoFilterXmlSaver } from './XmlAutoFilterSaver';
 import { CommentXmlWriter } from './CommentXml';
 

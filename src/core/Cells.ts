@@ -1,8 +1,7 @@
 /**
- * Aspose.Cells for Node.js - Cells Module
+ * tinyweb-office-cells - Cells Module
  *
  * A1-keyed collection of cells in a worksheet.
- * Compatible with Aspose.Cells for .NET API structure.
  */
 
 import { Cell, CellValue } from './Cell';

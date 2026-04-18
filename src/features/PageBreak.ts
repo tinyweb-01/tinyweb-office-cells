@@ -1,8 +1,7 @@
 /**
- * Aspose.Cells for Node.js - Page Break Module
+ * tinyweb-office-cells - Page Break Module
  *
- * Manual page break collections aligned with Aspose.Cells/.NET API.
- * Ported from Python `page_break.py`.
+ * Manual page break collections.
  *
  * @module features/PageBreak
  */

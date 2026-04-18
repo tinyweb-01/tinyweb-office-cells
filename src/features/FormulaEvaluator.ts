@@ -1,5 +1,5 @@
 /**
- * Aspose.Cells for Node.js – Formula Evaluator Module
+ * tinyweb-office-cells – Formula Evaluator Module
  *
  * Provides formula evaluation functionality for cells that have formulas.
  * Ported from Python `formula_evaluator.py` with significant enhancements.

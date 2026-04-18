@@ -1,7 +1,7 @@
 {
   "name": "tinyweb-office-cells",
   "version": "1.2.1",
-  "description": "Open-source Node.js/TypeScript library for reading, writing, and manipulating Excel XLSX files with full formatting, formula evaluation, and Aspose Cells-compatible API",
+  "description": "Open-source Node.js/TypeScript library for reading, writing, and manipulating Excel XLSX files with full formatting and formula evaluation",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -36,7 +36,6 @@
     "excel",
     "xlsx",
     "spreadsheet",
-    "aspose",
     "cells",
     "typescript",
     "formula",

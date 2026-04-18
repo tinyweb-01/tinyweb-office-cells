@@ -252,6 +252,149 @@ describe('worksheetToHtml with range option', () => {
     expect(tdCount).toBe(1);
     expect(html).toContain('B2');
   });
+  
+  // ─── Border-clipping regression tests ───────────────────────────────────
+  //
+  // Bug: with `border-collapse:collapse`, the table's outer borders extend
+  // ~1px outside the sum of column widths. When the wrapper <div> is sized
+  // to exactly `totalTableWidth`, puppeteer's `boundingBox`-based screenshot
+  // crops the right (and bottom) borders. Fix: wrap the table in an
+  // inline-block container with a small padding/buffer so the collapsed
+  // outer borders are never clipped.
+  
+  describe('worksheetToHtml — outer border clipping', () => {
+    function buildBorderedTable(): Worksheet {
+      const ws = new Worksheet('Bordered');
+      // 2x3 table with thin borders on every cell
+      for (let r = 1; r <= 2; r++) {
+        for (let c = 1; c <= 3; c++) {
+          const ref = String.fromCharCode(64 + c) + r; // A1,B1,...
+          const cell = ws.cells.get(ref);
+          cell.value = ref;
+          cell.style.borders.top.lineStyle = 'thin';
+          cell.style.borders.bottom.lineStyle = 'thin';
+          cell.style.borders.left.lineStyle = 'thin';
+          cell.style.borders.right.lineStyle = 'thin';
+        }
+      }
+      return ws;
+    }
+  
+    it('wraps the table in an inline-block container so outer borders are not clipped', () => {
+      const ws = buildBorderedTable();
+      const html = worksheetToHtml(ws);
+      // The table must be wrapped in a <div> (so puppeteer's boundingBox
+      // includes the wrapper's padding / buffer rather than the table's
+      // exact column-sum width).
+      expect(html.startsWith('<div')).toBe(true);
+      expect(html).toMatch(/display:inline-block/);
+    });
+  
+    it('wrapper width/padding is strictly greater than the sum of column widths', () => {
+      const ws = buildBorderedTable();
+      const html = worksheetToHtml(ws);
+  
+      // Extract table inner width from `width:NNNpx` inside the <table ...> tag
+      const tableMatch = html.match(/<table[^>]*width:(\d+)px/);
+      expect(tableMatch).not.toBeNull();
+      const tableWidth = parseInt(tableMatch![1], 10);
+  
+      // The wrapper must reserve space for the right-edge border:
+      //   either via explicit width  > tableWidth
+      //   or via padding-right > 0.
+      const wrapperWidthMatch = html.match(/<div[^>]*width:(\d+)px/);
+      const padRightMatch = html.match(/<div[^>]*padding-right:(\d+)px/);
+  
+      const wrapperWidth = wrapperWidthMatch ? parseInt(wrapperWidthMatch[1], 10) : 0;
+      const padRight = padRightMatch ? parseInt(padRightMatch[1], 10) : 0;
+  
+      const reserved = wrapperWidth > 0 ? wrapperWidth - tableWidth : padRight;
+      expect(reserved).toBeGreaterThanOrEqual(1);
+    });
+  
+    it('still wraps even when there are no drawings (regression)', () => {
+      const ws = buildBorderedTable();
+      expect((ws as any)._drawings).toBeFalsy();
+      const html = worksheetToHtml(ws);
+      expect(html.startsWith('<div')).toBe(true);
+      expect(html).toContain('<table');
+    });
+  
+    it('fullPage output still embeds the wrapped table', () => {
+      const ws = buildBorderedTable();
+      const html = worksheetToHtml(ws, { fullPage: true });
+      expect(html).toContain('<!DOCTYPE html>');
+      // body contains the wrapper div
+      expect(html).toMatch(/<body>[\s\S]*<div[\s\S]*<table/);
+    });
+  
+    it('mirrors right neighbour border-left as own border-right (collapsed-edge fix)', () => {
+      // Real bug from sample.xlsx 表紙 sheet: only "left" border was set on
+      // each cell; the rightmost column had no neighbour to provide the
+      // right edge, leaving the table visually open on the right.
+      const ws = new Worksheet('MirrorBorder');
+      // 1-row, 2-col table; only cell A1 has border-left, only cell B1 has
+      // border-left (= shared edge between A1 and B1). Neither has border-right.
+      const a = ws.cells.get('A1');
+      a.value = 'A';
+      a.style.borders.left.lineStyle = 'thin';
+      const b = ws.cells.get('B1');
+      b.value = 'B';
+      b.style.borders.left.lineStyle = 'thin';
+      // Note: nothing has border-right defined at all.
+  
+      const html = worksheetToHtml(ws);
+      // After the fix, cell A1 should mirror B1's border-left into its own
+      // border-right, so the rendered HTML must contain a `border-right`.
+      expect(html).toMatch(/border-right:\s*1px/);
+    });
+
+    it('uses inner-cell border-right for merged ranges (sample.xlsx 表紙 bug)', () => {
+      // Real bug: a merged range like F19:J19 (colspan=5) had the right
+      // border on cell J19 (the last cell *inside* the merge), not on the
+      // anchor F19. The renderer used to read borders only from the anchor
+      // cell, so border-right was lost — leaving the rightmost cell of the
+      // metadata table visually open on the right.
+      const ws = new Worksheet('MergedRightBorder');
+      ws._mergedCells.push('A1:E1');
+      const a = ws.cells.get('A1');
+      a.value = 'merged value';
+      a.style.borders.left.lineStyle = 'thin';
+      a.style.borders.top.lineStyle = 'thin';
+      a.style.borders.bottom.lineStyle = 'thin';
+      // anchor cell deliberately has NO right border.
+      const e = ws.cells.get('E1');
+      e.style.borders.right.lineStyle = 'thin';
+
+      const html = worksheetToHtml(ws);
+      // The merged <td colspan="5"> for "merged value" must carry border-right
+      // sourced from E1.
+      const mergedTd = html.match(/<td[^>]*colspan="5"[^>]*>merged value<\/td>/);
+      expect(mergedTd).not.toBeNull();
+      expect(mergedTd![0]).toMatch(/border-right:\s*1px/);
+    });
+
+    it('rendered PNG is wide enough to include the right border (no clipping)', async () => {
+      const ws = buildBorderedTable();
+      const png = await worksheetToPng(ws, { viewportWidth: 400 });
+      expect(Buffer.isBuffer(png)).toBe(true);
+  
+      // PNG width is stored as a 4-byte big-endian integer at offset 16.
+      const pngWidth =
+        (png[16] << 24) | (png[17] << 16) | (png[18] << 8) | png[19];
+  
+      // Compute expected minimum width: 3 columns × default width (~59px)
+      // + body padding (8 left + 8 right) + buffer (≥1) + viewport padding (20).
+      // We don't need an exact value — just assert the screenshot is wider
+      // than the bare column sum, which proves the wrapper buffer survived
+      // through to the rasterized output.
+      const html = worksheetToHtml(ws);
+      const tableMatch = html.match(/<table[^>]*width:(\d+)px/);
+      const tableWidth = tableMatch ? parseInt(tableMatch[1], 10) : 0;
+  
+      expect(pngWidth).toBeGreaterThan(tableWidth);
+    }, 30000);
+  });
 
   it('falls back to full sheet when range is invalid', () => {
     const ws = build3x3Sheet();

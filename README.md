@@ -1,6 +1,6 @@
 # tinyweb-office-cells
 
-> Open-source Node.js/TypeScript library for reading, writing, and manipulating Excel XLSX files with full formatting, formula evaluation, and Aspose Cells-compatible API.
+> Open-source Node.js/TypeScript library for reading, writing, and manipulating Excel XLSX files with full formatting and formula evaluation.
 
 [![npm version](https://img.shields.io/npm/v/tinyweb-office-cells.svg)](https://www.npmjs.com/package/tinyweb-office-cells)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

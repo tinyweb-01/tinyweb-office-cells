@@ -1,10 +1,8 @@
 /**
- * Aspose.Cells for Node.js - Style Module
+ * tinyweb-office-cells - Style Module
  *
  * Provides classes for cell styling: Font, Fill, Border, Borders,
  * Alignment, NumberFormat, Protection, and Style.
- *
- * Compatible with Aspose.Cells for .NET API structure.
  */
 
 // ─── Font ──────────────────────────────────────────────────────────────────
