@@ -606,6 +606,17 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
         if (merge.rowSpan > 1) spanAttr += ` rowspan="${merge.rowSpan}"`;
       }
 
+      // ── Excel-style horizontal spillover ────────────────────────────
+      // Text cells whose content is wider than the column visually
+      // spill into the adjacent empty cell(s) on the right (left-/general-
+      // aligned) or on the left (right-aligned). We allow this by
+      // measuring how many consecutive neighbours are empty (no value
+      // AND no fill) and rendering the cell content in an inline-block
+      // <span> that may extend beyond the td's box, while setting the
+      // td's overflow to `visible`.
+      let spilloverHtml: string | null = null;
+      let spilloverOverflow = false;
+
       if (cell) {
         const style = cell.style;
         const font = style.font;
@@ -695,9 +706,78 @@ export function worksheetToHtml(ws: Worksheet, options: HtmlRenderOptions = {}):
         }
       }
 
-      const styleAttr = styles.length ? ` style="${styles.join(';')}"` : '';
+      // Compute the rendered string and decide whether to allow spillover
       const value = cell?.value != null ? escapeHtml(formatCellValue(cell.value, cell.style.numberFormat)) : '';
-      tbody += `<td${spanAttr}${styleAttr}>${value}</td>`;
+
+      if (cell && value && typeof cell.value === 'string') {
+        const align = cell.style.alignment?.horizontal;
+        const wrap = cell.style.alignment?.wrapText;
+        // General/left alignment for text spills to the right.
+        const spillsRight = !wrap && (!align || align === 'general' || align === 'left');
+        const spillsLeft = !wrap && align === 'right';
+
+        if (spillsRight) {
+          // Count consecutive empty/no-fill neighbours to the right that
+          // are not hidden by a merge and lie within the rendered range.
+          const startCol = c + (merge?.colSpan ?? 1);
+          let extraCols = 0;
+          for (let cn = startCol; cn <= maxCol; cn++) {
+            if (hidden.has(`${r},${cn}`)) break;
+            const neighborRef = `${colToLetter(cn)}${r}`;
+            const neighbor = cellMap.get(neighborRef);
+            const neighbourEmpty = !neighbor || neighbor.value == null || neighbor.value === '';
+            const neighbourHasFill = neighbor
+              ? shouldRenderFill(neighbor.style.fill.patternType, neighbor.style.fill.foregroundColor)
+              : false;
+            if (neighbourEmpty && !neighbourHasFill) {
+              extraCols++;
+            } else {
+              break;
+            }
+          }
+          if (extraCols > 0) {
+            spilloverOverflow = true;
+            // Render content in an inline-block span with nowrap so the
+            // browser lets it extend past the td's column width.
+            spilloverHtml =
+              `<span style="display:inline-block;white-space:nowrap;overflow:visible">${value}</span>`;
+          }
+        } else if (spillsLeft) {
+          const colSpan = merge?.colSpan ?? 1;
+          let extraCols = 0;
+          for (let cn = c - 1; cn >= minCol; cn--) {
+            if (hidden.has(`${r},${cn}`)) break;
+            const neighborRef = `${colToLetter(cn)}${r}`;
+            const neighbor = cellMap.get(neighborRef);
+            const neighbourEmpty = !neighbor || neighbor.value == null || neighbor.value === '';
+            const neighbourHasFill = neighbor
+              ? shouldRenderFill(neighbor.style.fill.patternType, neighbor.style.fill.foregroundColor)
+              : false;
+            if (neighbourEmpty && !neighbourHasFill) {
+              extraCols++;
+            } else {
+              break;
+            }
+          }
+          if (extraCols > 0) {
+            spilloverOverflow = true;
+            // Anchor the span at the right edge of the cell and let it
+            // grow leftwards.
+            spilloverHtml =
+              `<span style="display:inline-block;white-space:nowrap;overflow:visible">${value}</span>`;
+          }
+          // Suppress unused-var warning when right-spill path isn't taken
+          void colSpan;
+        }
+      }
+
+      if (spilloverOverflow) {
+        styles.push('overflow:visible');
+      }
+
+      const styleAttr = styles.length ? ` style="${styles.join(';')}"` : '';
+      const cellHtml = spilloverHtml ?? value;
+      tbody += `<td${spanAttr}${styleAttr}>${cellHtml}</td>`;
     }
     tbody += '</tr>';
   }
